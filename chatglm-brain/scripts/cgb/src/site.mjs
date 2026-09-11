@@ -301,31 +301,83 @@ export async function snapshotMarkers(page) {
 /**
  * 等本次回答完成：网络结束 + 文本连续 N 次采样不变 + 只认新增回答。
  * minAnswers / minMarkdowns：发送前的基线（页面会恢复最近会话，必须只认新增）。
+ *
+ * 智谱风控（整页被「访问验证」替换）的三种状态都要有确定行为：
+ *   1. 等用户完成验证期间 —— **回答超时时钟暂停**（用户拖多久都不烧 `--timeout` 预算）；
+ *   2. 验证通过后 —— 只给 challengeGraceMs 宽限；仍无新增正文就立刻返回
+ *      `reason:STREAM_STALLED + challenge:true + cleared:true`，由上层**马上重发**；
+ *   3. 一直没完成 —— 超过 challengeWaitMs 返回 `HUMAN_VERIFICATION_REQUIRED`（不重发）。
+ * 页面/浏览器被用户关闭 → `reason:"BROWSER_CLOSED"`（旧实现会抛 INTERNAL_ERROR 崩掉）。
  */
 export async function waitForAnswer(
   page,
-  { timeoutMs = 300000, pollMs = 2000, stableSamples = 3, completion = null, minAnswers = 0, minMarkdowns = 0, onPoll, onChallenge } = {}
+  {
+    timeoutMs = 300000,
+    pollMs = 2000,
+    stableSamples = 3,
+    completion = null,
+    minAnswers = 0,
+    minMarkdowns = 0,
+    challengeWaitMs = 180000,
+    challengeGraceMs = 15000,
+    onPoll,
+    onChallenge,
+  } = {}
 ) {
   const started = Date.now();
+  let pausedMs = 0;
+  let challengeStartedAt = null;
+  let challengeClearedAt = null;
+  let challengeSeen = false;
   let last = "";
   let stable = 0;
   let lastState = null;
+  const activeElapsed = () => Date.now() - started - pausedMs;
 
-  let challengeSeen = false;
-  while (Date.now() - started < timeoutMs) {
+  const evalOrNull = async (fn) => {
+    try {
+      return await page.evaluate(fn);
+    } catch (error) {
+      if (/has been closed|Target closed|Target page, context or browser/i.test(String(error))) {
+        return { __closed: true };
+      }
+      return null;
+    }
+  };
+
+  while (activeElapsed() < timeoutMs) {
     // 智谱风控：整页被「访问验证」替换（输入框与回答都消失）→ 停止轮询，等用户完成
-    const stNow = await page.evaluate(STATE_FN).catch(() => null);
+    const stNow = await evalOrNull(STATE_FN);
+    if (stNow?.__closed) return { ok: false, reason: "BROWSER_CLOSED", elapsedMs: activeElapsed() };
     if (stNow?.challenge) {
       if (!challengeSeen) {
         challengeSeen = true;
-        onChallenge?.();
+        challengeStartedAt = Date.now();
+        onChallenge?.({ phase: "pending" });
+      }
+      if (Date.now() - challengeStartedAt > challengeWaitMs) {
+        return {
+          ok: false,
+          reason: "HUMAN_VERIFICATION_REQUIRED",
+          challenge: true,
+          pending: true,
+          ...(lastState ?? {}),
+          elapsedMs: activeElapsed(),
+        };
       }
       onPoll?.({ challenge: true });
-      await page.waitForTimeout(pollMs);
+      await page.waitForTimeout(pollMs).catch(() => {});
       continue;
     }
 
-    lastState = await page.evaluate(EXTRACT_FN).catch(() => null);
+    if (challengeStartedAt && challengeClearedAt === null) {
+      challengeClearedAt = Date.now();
+      pausedMs += challengeClearedAt - challengeStartedAt; // 等待用户完成验证的时间不计入回答超时
+      onChallenge?.({ phase: "cleared" });
+    }
+
+    lastState = await evalOrNull(EXTRACT_FN);
+    if (lastState?.__closed) return { ok: false, reason: "BROWSER_CLOSED", elapsedMs: activeElapsed() };
     const cs = completion?.state ?? { seen: false, done: false, failed: false };
     const netIdle = !cs.seen || cs.done || cs.failed;
 
@@ -343,18 +395,38 @@ export async function waitForAnswer(
         fresh,
         net: `${cs.seen ? "seen" : "-"}/${cs.done ? "done" : cs.failed ? "failed" : "-"}`,
         streaming: lastState.stopVisible,
+        challenge: challengeClearedAt ? "cleared" : undefined,
       });
 
-      if (fresh && netIdle && t.length > 0 && stable >= stableSamples) {
-        return { ok: true, ...lastState, mode: "chat", elapsedMs: Date.now() - started };
+      // 验证通过后仍拿不到新增正文（消息已被拦）→ 立刻交给上层重发
+      if (challengeClearedAt && t.length === 0 && Date.now() - challengeClearedAt > challengeGraceMs) {
+        return {
+          ok: false,
+          reason: "STREAM_STALLED",
+          challenge: true,
+          cleared: true,
+          ...lastState,
+          elapsedMs: activeElapsed(),
+        };
       }
-      if (fresh && netIdle && !lastState.stopVisible && Date.now() - started > 20000 && stable >= 2) {
-        return { ok: true, ...lastState, mode: "chat", elapsedMs: Date.now() - started };
+
+      if (fresh && netIdle && t.length > 0 && stable >= stableSamples) {
+        return { ok: true, ...lastState, mode: "chat", elapsedMs: activeElapsed() };
+      }
+      if (fresh && netIdle && !lastState.stopVisible && activeElapsed() > 20000 && stable >= 2) {
+        return { ok: true, ...lastState, mode: "chat", elapsedMs: activeElapsed() };
       }
     }
-    await page.waitForTimeout(pollMs);
+    await page.waitForTimeout(pollMs).catch(() => {});
   }
-  return { ok: false, reason: "STREAM_STALLED", ...(lastState ?? {}), challenge: challengeSeen || undefined, elapsedMs: Date.now() - started };
+  return {
+    ok: false,
+    reason: "STREAM_STALLED",
+    ...(lastState ?? {}),
+    challenge: challengeSeen || undefined,
+    cleared: challengeClearedAt ? true : undefined,
+    elapsedMs: activeElapsed(),
+  };
 }
 
 /** 开新对话：点侧栏「新对话」（真机验证：点击后 URL 变为无 cid 的新页）。 */
@@ -372,18 +444,40 @@ export async function startNewChat(page) {
   return { clicked };
 }
 
-/** 等滑块/人机验证消失（用户在浏览器里完成）。 */
-export async function waitForChallengeCleared(page, { timeoutMs = 300000, pollMs = 3000, onWait } = {}) {
+/**
+ * 等滑块/人机验证消失（用户在浏览器里完成）。
+ * onWait：首次检测到验证时回调（CLI 用来提示「触发风控、需人工验证」）；
+ * onTick：每 ~20 秒回调一次（CLI 播报剩余等待时间，不让用户面对一个「卡住」的窗口）。
+ * 用户中途关掉浏览器 → `{ cleared:false, aborted:true }`（CLI 据此报 BROWSER_CLOSED，
+ * 而不是像旧实现那样抛 `Target page ... closed` 的 INTERNAL_ERROR 崩掉，实测踩过）。
+ */
+export async function waitForChallengeCleared(page, { timeoutMs = 300000, pollMs = 3000, onWait, onTick } = {}) {
   const started = Date.now();
   let first = true;
+  let lastTick = 0;
   while (Date.now() - started < timeoutMs) {
-    const st = await page.evaluate(STATE_FN).catch(() => null);
+    let st = null;
+    try {
+      st = await page.evaluate(STATE_FN);
+    } catch {
+      return { cleared: false, aborted: true, waitedMs: Date.now() - started };
+    }
     if (!st?.challenge) return { cleared: true, waitedMs: Date.now() - started };
+    const elapsed = Date.now() - started;
     if (first) {
       first = false;
-      onWait?.();
+      onWait?.({ timeoutMs });
     }
-    await page.waitForTimeout(pollMs);
+    const sec = Math.round(elapsed / 1000);
+    if (sec - lastTick >= 20) {
+      lastTick = sec;
+      onTick?.({ elapsedMs: elapsed, remainingMs: timeoutMs - elapsed });
+    }
+    try {
+      await page.waitForTimeout(pollMs);
+    } catch {
+      return { cleared: false, aborted: true, waitedMs: Date.now() - started };
+    }
   }
   return { cleared: false, waitedMs: Date.now() - started };
 }
