@@ -42,9 +42,9 @@
 因此三者共享同一套行为约定：
 
 - **确定性脱敏闸门**（发送前，代码强制）：私钥整段拒绝、密钥形状与家目录路径脱敏；
-  单次正文 ≤ 50 KB（`--allow-large` 放宽到 200 KB），超限报 `PAYLOAD_TOO_LARGE`。
-  附件（`--attach`）不含在 50 KB 正文限额内，其格式与大小上限由各站点网页端决定，
-  被拒时报 `UPLOAD_REJECTED`。
+  单次正文 ≤ 50 KB（按 UTF-8 字节计；`--allow-large` 放宽到 200 KB），超限报 `PAYLOAD_TOO_LARGE`。
+  附件（`--attach`）不计入这 50 KB，其格式与大小上限由各站点网页端决定，被拒时报 `UPLOAD_REJECTED`。
+  闸门是**基于规则**的确定性检查，能挡住常见凭据形态，但不能替代你对外发内容的人工判断。
 - **人工登录一次，之后长期复用**：登录/人机验证只在网站重弹时才打扰你（`LOGIN_REQUIRED` /
   `HUMAN_VERIFICATION_REQUIRED`，一次只给一个动作）；agent 不接触凭证。
   三仓的登录持久化难度不同：DeepSeek 与豆包的 cookie 是持久型，基本一劳永逸；
@@ -65,8 +65,8 @@
 - **Node.js ≥ 20**（含 npm —— 首次配置会把 `playwright-core` 装到状态目录，需要能访问 npm registry）
 - 系统已装 **Chrome / Edge / Brave / Chromium** 任一（自动探测，**不下载 Chromium**）
 - 能访问对应站点的浏览器，以及一个对应账号（**无需 API key**）
-- **需要有图形界面**：首次配置会打开有头浏览器请你本人登录，纯 SSH / 容器环境无法完成；
-  如必须在服务器上跑，请自行准备 X11 转发或远程桌面
+- **需要有图形界面**：首次配置要打开有头浏览器请你本人登录，之后**每次问答也会真实打开浏览器窗口**
+  （问完自动关闭）。纯 SSH / 容器环境无法使用；如必须在服务器上跑，请自行准备 X11 转发或远程桌面
 
 > **先分清两个仓库角色**：本仓库（`official-llm-zhazhiji`）是**聚合主仓库**，
 > 用来浏览与二次开发，**不能直接装进 skills 目录**；
@@ -78,12 +78,16 @@
 
 ```bash
 mkdir -p ~/.claude/skills ~/.codex/skills ~/.agents/skills   # 已存在则无副作用
+# Windows cmd:  mkdir "%USERPROFILE%\.claude\skills"
+# PowerShell:   mkdir "$env:USERPROFILE\.claude\skills" -Force
 
 # 三条命令按你的宿主任选其一，不要全都执行
 git clone https://github.com/ops120/deepseek-brain ~/.claude/skills/deepseek-brain   # Claude Code
 git clone https://github.com/ops120/deepseek-brain ~/.codex/skills/deepseek-brain    # Codex
 git clone https://github.com/ops120/deepseek-brain ~/.agents/skills/deepseek-brain   # 通用 / ZCode
 ```
+
+> 目标目录已存在时 `git clone` 会失败：改用 `git -C <目录> pull` 更新，或先删掉旧目录。
 
 > Windows 用户注意：**cmd** 请把 `~` 换成 `%USERPROFILE%`（如 `%USERPROFILE%\.claude\skills\...`），
 > **PowerShell** 请用 `$env:USERPROFILE`（如 `$env:USERPROFILE\.claude\skills\...`），
@@ -101,7 +105,13 @@ git clone --recursive https://github.com/ops120/official-llm-zhazhiji.git
 > 注意：`--recursive` 拉下来的三个 brain **不会被 agent 自动发现**，
 > 要让 agent 用上仍需把它们（或其副本）放进宿主的 skills 目录。
 
-装好后对 agent 说：**「用 deepseek-brain 完成首次配置」**（换 `doubao-brain` / `gemini-brain` 同理）。
+装好后对 agent 说：**「用 deepseek-brain 完成首次配置」**（换 `doubao-brain` / `gemini-brain` 同理），
+agent 会替你跑 `setup`。也可以自己手动执行首次配置：
+
+```bash
+node "$SKILL_ROOT/deepseek-brain/scripts/dsb/cli.mjs" setup   # 换 dbb / gmb 与目录名同理
+```
+
 首次配置会检查环境、把 `playwright-core` 装到状态目录、打开有头浏览器**请你本人登录**，然后冒烟验证。
 
 > **关于命令写法（重要）**：下文 `dsb` / `dbb` / `gmb` 都是**文档简写**，并非安装好的命令。
@@ -156,6 +166,7 @@ dbb ask --prompt "分析下这段代码" --model "2.1 Turbo" --json
 > `图像生成` / `视频生成` / `音乐生成` / `AI 播客` / `录音转写`（代码里的判定以此为准）；
 > `帮我写作` 属于文本模式，不产出文件。不切能力时豆包只会回一段文字描述，页面上不渲染产物。
 > 可用模型与能力栏以页面实际显示为准（`dbb list-models` 会一并报告）。
+> 视频生成的 `--timeout` 单位是**毫秒**，`900000` 即 15 分钟（站点提示的等待时间可达 10 分钟）。
 
 ### ♊ gemini-brain —— 高清生图与代码 Canvas
 
@@ -227,7 +238,7 @@ official-llm-zhazhiji/
 
 ## 许可证
 
-本项目基于 MIT License 开源。
+本项目基于 MIT License 开源；三个子仓库各自独立遵循 MIT（详见各仓库的许可证章节）。
 
 ## 社区
 
