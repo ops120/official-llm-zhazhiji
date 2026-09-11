@@ -62,18 +62,20 @@
 
 前置要求（三个 brain 相同）：
 
-- **Node.js ≥ 20**（含 npm —— 首次配置会把 `playwright-core` 装到状态目录，需要能访问 npm registry）
+- **Node.js ≥ 20**（建议 22 LTS；含 npm —— 首次配置会把 `playwright-core` 装到状态目录，需要能访问 npm registry）
 - 系统已装 **Chrome / Edge / Brave / Chromium** 任一（自动探测，**不下载 Chromium**）
-- 能访问对应站点的浏览器，以及一个对应账号（**无需 API key**）
+- **网络环境能访问**对应站点，以及一个对应账号（**无需 API key**）
 - **需要有图形界面**：首次配置要打开有头浏览器请你本人登录，之后**每次问答也会真实打开浏览器窗口**
-  （问完自动关闭）。纯 SSH / 容器环境无法使用；如必须在服务器上跑，请自行准备 X11 转发或远程桌面
+  （问完自动关闭）；后续若站点重弹验证（人机验证 / 登录失效），同样需要你在图形界面里手动完成。
+  纯 SSH / 容器环境无法使用；如必须在服务器上跑，请自行准备 X11 转发或远程桌面
 
 > **先分清两个仓库角色**：本仓库（`official-llm-zhazhiji`）是**聚合主仓库**，
 > 用来浏览与二次开发，**不能直接装进 skills 目录**；
 > 真正要安装的是下面三个子仓库，按你需要的能力任选其一或多选。
 
-把子仓库 clone 到宿主的 skills 目录即可，无需改任何路径
-（下例以 deepseek-brain 为例，`doubao-brain` / `gemini-brain` 换个名字同理）。
+把子仓库 clone 到宿主的 skills 目录即可（仓库内部无需改任何路径；
+命令行入口还要按下一节配别名或用完整路径）。
+下例以 deepseek-brain 为例，`doubao-brain` / `gemini-brain` 换个名字同理。
 若目标目录尚不存在，先建父目录再 clone：
 
 ```bash
@@ -89,9 +91,15 @@ git clone https://github.com/ops120/deepseek-brain ~/.agents/skills/deepseek-bra
 
 > 目标目录已存在时 `git clone` 会失败：改用 `git -C <目录> pull` 更新，或先删掉旧目录。
 
-> Windows 用户注意：**cmd** 请把 `~` 换成 `%USERPROFILE%`（如 `%USERPROFILE%\.claude\skills\...`），
-> **PowerShell** 请用 `$env:USERPROFILE`（如 `$env:USERPROFILE\.claude\skills\...`），
-> 建目录用 `mkdir`。此外 `~` 本身在两者中都不会被展开。
+> **Windows 的可复制写法**（`~` 在 cmd / PowerShell 里不会展开）：
+> ```bat
+> :: cmd
+> git clone https://github.com/ops120/deepseek-brain "%USERPROFILE%\.agents\skills\deepseek-brain"
+> ```
+> ```powershell
+> # PowerShell
+> git clone https://github.com/ops120/deepseek-brain "$env:USERPROFILE\.agents\skills\deepseek-brain"
+> ```
 
 > **clone 完还不能直接运行命令**：下文 `dsb` / `dbb` / `gmb` 是文档简写，不是安装出来的可执行文件。
 > 用之前必须先配别名（见下一节），或把示例里的简写替换成完整 `node "..."` 路径。
@@ -106,29 +114,31 @@ git clone --recursive https://github.com/ops120/official-llm-zhazhiji.git
 > 要让 agent 用上仍需把它们（或其副本）放进宿主的 skills 目录。
 
 装好后对 agent 说：**「用 deepseek-brain 完成首次配置」**（换 `doubao-brain` / `gemini-brain` 同理），
-agent 会替你跑 `setup`。也可以自己手动执行首次配置：
+agent 会替你跑 `setup`。也可以自己手动执行首次配置（把路径换成你实际的安装位置）：
 
 ```bash
-node "$SKILL_ROOT/deepseek-brain/scripts/dsb/cli.mjs" setup   # 换 dbb / gmb 与目录名同理
+node ~/.agents/skills/deepseek-brain/scripts/dsb/cli.mjs setup    # 换 dbb / gmb 与目录名同理
 ```
 
 首次配置会检查环境、把 `playwright-core` 装到状态目录、打开有头浏览器**请你本人登录**，然后冒烟验证。
 
 > **关于命令写法（重要）**：下文 `dsb` / `dbb` / `gmb` 都是**文档简写**，并非安装好的命令。
-> 它们等价于 `node "<skill-root>/scripts/<cli>/cli.mjs" <命令>`，
-> 其中 `<skill-root>` 是你 clone 下来的仓库目录。
+> 以 `dsb` 为例，它等价于 `node "<安装目录>/deepseek-brain/scripts/dsb/cli.mjs" <命令>`。
 >
-> **推荐：先设一个变量，再配别名**（路径按你的实际安装位置改，三种宿主任选对应的一行）：
+> **推荐：先设一个变量，再配别名**（三种宿主任选对应的一行；想长期生效就写进 `~/.bashrc` / `~/.zshrc`）：
 > ```bash
-> # Claude Code 安装：SKILL_ROOT="$HOME/.claude/skills"
-> # Codex 安装：      SKILL_ROOT="$HOME/.codex/skills"
-> # 通用 / ZCode：    SKILL_ROOT="$HOME/.agents/skills"
-> SKILL_ROOT="$HOME/.agents/skills"          # ← 改成你实际用的那个
-> alias dsb='node "$SKILL_ROOT/deepseek-brain/scripts/dsb/cli.mjs"'
-> alias dbb='node "$SKILL_ROOT/doubao-brain/scripts/dbb/cli.mjs"'
-> alias gmb='node "$SKILL_ROOT/gemini-brain/scripts/gmb/cli.mjs"'
+> # Claude Code 安装：SKILLS_DIR="$HOME/.claude/skills"
+> # Codex 安装：      SKILLS_DIR="$HOME/.codex/skills"
+> # 通用 / ZCode：    SKILLS_DIR="$HOME/.agents/skills"
+> SKILLS_DIR="$HOME/.agents/skills"          # ← 改成你实际用的那个
+> export SKILLS_DIR
+> alias dsb='node "$SKILLS_DIR/deepseek-brain/scripts/dsb/cli.mjs"'
+> alias dbb='node "$SKILLS_DIR/doubao-brain/scripts/dbb/cli.mjs"'
+> alias gmb='node "$SKILLS_DIR/gemini-brain/scripts/gmb/cli.mjs"'
 > ```
-> 不配别名也行：把示例里的 `dsb` 整体替换成 `node "$SKILL_ROOT/deepseek-brain/scripts/dsb/cli.mjs"`。
+> 不配别名也行：把示例里的 `dsb` 整体替换成 `node "$SKILLS_DIR/deepseek-brain/scripts/dsb/cli.mjs"`。
+> Windows 用户在 cmd / PowerShell 里没有 `alias`，请直接使用完整 `node "..."` 路径
+> （或自建 `.cmd` / `function` 包装脚本）。
 
 ## 快速上手
 
@@ -136,10 +146,16 @@ node "$SKILL_ROOT/deepseek-brain/scripts/dsb/cli.mjs" setup   # 换 dbb / gmb �
 `list-models` 仅 doubao 与 gemini 有（DeepSeek 网页版没有模型选择器，故无此命令）。
 `--json`（机器可读）与 `--debug`（存页面 HTML 排障）为全局选项；
 `--keep-open`（保留浏览器窗口）只对会打开浏览器的命令有意义。
-以下示例使用别名简写，未配别名时请自行展开为全路径。
+各命令的完整参数（`--think` / `--search` / `--attach` / `--capability` / `--model` / `--protocol` 等）
+以各子仓库 README 的命令面章节为准。
+
+> 以下示例使用别名简写，**未配别名时请自行展开为完整 `node "..."` 路径**。
 
 > ⚠️ `--debug` 与失败时保存的 `debug/` 目录**可能包含你的 prompt 与模型回答原文（未脱敏）**，
 > 它们保存在状态目录而非项目目录；排障后建议删除，**不要直接上传到公开 issue**。
+> 状态目录位置：Windows `%LOCALAPPDATA%\<name>-brain\`、
+> macOS `~/Library/Application Support/<name>-brain/`、Linux `$XDG_STATE_HOME/<name>-brain/`
+> （可用 `DSB_STATE_DIR` / `DBB_STATE_DIR` / `GMB_STATE_DIR` 覆盖）。
 
 ### 🐋 deepseek-brain —— 推理与联网搜索
 
@@ -238,7 +254,7 @@ official-llm-zhazhiji/
 
 ## 许可证
 
-本项目基于 MIT License 开源；三个子仓库各自独立遵循 MIT（详见各仓库的许可证章节）。
+本项目基于 MIT License 开源；三个子仓库各自独立遵循 MIT（以各仓库的许可证章节为准）。
 
 ## 社区
 
