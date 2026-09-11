@@ -3,8 +3,8 @@
 官方 LLM 榨汁机。🍊
 
 榨的对象是**官方 Web 端 LLM**——不是 API，是浏览器里那个网页版。
-方式是通过 **harness** 驱动它：接管会话、自动调用、持续压榨，
-把额度、上下文和能力榨到最后一滴——**在站点额度与风控允许的范围内，低频、非批量地使用**。
+方式是通过 **harness** 驱动它：接管会话、自动调用、持续压榨——
+**在站点额度与风控允许的范围内，低频、非批量地辅助使用**。
 
 没有 API key，不做 web2api：只驱动官方网页，用**本地确定性 CLI** 把网页版 LLM
 变成编码 agent 的**外部大脑**——它们出推理与内容，你的 agent 出执行。
@@ -45,8 +45,8 @@
   单次正文 ≤ 50 KB（按 UTF-8 字节计；`--allow-large` 放宽到 200 KB），超限报 `PAYLOAD_TOO_LARGE`。
   附件（`--attach`）不计入这 50 KB，其格式与大小上限由各站点网页端决定，被拒时报 `UPLOAD_REJECTED`。
   闸门是**基于规则**的确定性检查，能挡住常见凭据形态，但不能替代你对外发内容的人工判断。
-- **人工登录一次，之后长期复用**：登录/人机验证只在网站重弹时才打扰你（`LOGIN_REQUIRED` /
-  `HUMAN_VERIFICATION_REQUIRED`，一次只给一个动作）；agent 不接触凭证。
+- **人工登录一次，之后尽量复用**：登录/人机验证只在网站重弹时才打扰你（`LOGIN_REQUIRED` /
+  `HUMAN_VERIFICATION_REQUIRED`，一次只给一个动作）；CLI 不把凭证写入项目目录、日志或 prompt。
   三仓的登录持久化难度不同：DeepSeek 与豆包的 cookie 是持久型，基本一劳永逸；
   **Gemini 依赖 session cookie，站点风控或会话过期时会要求重新登录**。
 - **协作协议**（`[DSB]` / `[DBB]` / `[GMB]`）：让大脑做 PLAN → 你执行 → 它 REVIEW 的循环，
@@ -65,7 +65,9 @@
 
 - **Node.js ≥ 20**（建议 22 LTS；含 npm —— 首次配置会把 `playwright-core` 装到状态目录，需要能访问 npm registry）
 - 系统已装 **Chrome / Edge / Brave / Chromium** 任一（自动探测，**不下载 Chromium**）
-- **网络环境能访问**对应站点，以及一个对应账号（**无需 API key**）
+- **网络环境能访问**对应站点，以及一个对应账号（**无需 API key**）。
+  若需代理才能访问（Gemini 常见），请自行在系统或浏览器层配好——CLI 驱动的是系统浏览器，
+  是否走代理取决于浏览器/系统设置；Node 直连失败不影响使用
 - **需要有图形界面**：首次配置要打开有头浏览器请你本人登录，之后**每次问答也会真实打开浏览器窗口**
   （问完自动关闭）；后续若站点重弹验证（人机验证 / 登录失效），同样需要你在图形界面里手动完成。
   纯 SSH / 容器环境无法使用；如必须在服务器上跑，请自行准备 X11 转发或远程桌面
@@ -81,8 +83,10 @@
 
 ```bash
 mkdir -p ~/.claude/skills ~/.codex/skills ~/.agents/skills   # 已存在则无副作用
-# Windows cmd:  mkdir "%USERPROFILE%\.claude\skills"
-# PowerShell:   mkdir "$env:USERPROFILE\.claude\skills" -Force
+# Windows cmd（三个父目录一次建好，REM 为注释）:
+#   mkdir "%USERPROFILE%\.claude\skills" "%USERPROFILE%\.codex\skills" "%USERPROFILE%\.agents\skills"
+# PowerShell:
+#   "$env:USERPROFILE\.claude\skills","$env:USERPROFILE\.codex\skills","$env:USERPROFILE\.agents\skills" | ForEach-Object { mkdir $_ -Force }
 
 # 三条命令按你的宿主任选其一，不要全都执行
 git clone https://github.com/ops120/deepseek-brain ~/.claude/skills/deepseek-brain   # Claude Code
@@ -92,9 +96,9 @@ git clone https://github.com/ops120/deepseek-brain ~/.agents/skills/deepseek-bra
 
 > 目标目录已存在时 `git clone` 会失败：改用 `git -C <目录> pull` 更新，或先删掉旧目录。
 
-> **Windows 的可复制写法**（`~` 在 cmd / PowerShell 里不会展开）：
+> **Windows 的可复制写法**（cmd 不会展开 `~`，PowerShell 虽通常能展开，仍建议统一用环境变量）：
 > ```bat
-> :: cmd
+> REM cmd
 > git clone https://github.com/ops120/deepseek-brain "%USERPROFILE%\.agents\skills\deepseek-brain"
 > ```
 > ```powershell
@@ -149,7 +153,14 @@ node ~/.agents/skills/deepseek-brain/scripts/dsb/cli.mjs setup    # 换 dbb / gm
 `--json`（机器可读）与 `--debug`（存页面 HTML 排障）为全局选项；
 `--keep-open`（保留浏览器窗口）只对会打开浏览器的命令有意义。
 各命令的完整参数（`--think` / `--search` / `--attach` / `--capability` / `--model` / `--protocol` 等）
-以各子仓库 README 的命令面章节为准。
+以各子仓库 README 的命令面章节为准。常用的几条：
+
+```bash
+dsb ask --prompt "..." --thread new --json      # 开新线程提问（省略 --thread 则复用当前线程）
+dsb thread status --json                        # 看当前线程
+dsb session get --json                          # 看工作区检查点（协作协议用）
+dsb logs -n 50                                  # 看最近 50 行脱敏日志
+```
 
 > 以下示例使用别名简写，**未配别名时请自行展开为完整 `node "..."` 路径**。
 
@@ -222,7 +233,8 @@ official-llm-zhazhiji/
 ├── deepseek-brain/     # submodule → github.com/ops120/deepseek-brain（DeepSeek 网页版 → dsb CLI）
 ├── doubao-brain/       # submodule → github.com/ops120/doubao-brain（豆包网页版  → dbb CLI）
 ├── gemini-brain/       # submodule → github.com/ops120/gemini-brain（Gemini 网页版 → gmb CLI）
-└── readme.md           # 本文件
+├── LICENSE             # MIT
+└── README.md           # 本文件
 ```
 
 三个子目录是 **git submodule**：各自指向独立仓库、各自保留完整 git 历史；
@@ -243,8 +255,8 @@ official-llm-zhazhiji/
   普通问答几秒到几十秒；**生成类任务（生图 / 生视频）会显著更久**，
   豆包视频实测约 3 分钟、站点提示可达 10 分钟，此时需给足 `--timeout`。
   请按「偶尔咨询」的频率使用，**不做批量、不做并发**（同一时间只跑一个会话）。
-- **不做 web2api**：只在本机驱动官方网页，不逆向私有协议、不做 HTTP 代理、
-  不对外暴露接口。它是给本地 agent 用的工具，不是 API 服务。
+- **不做 web2api**：只在本机驱动官方网页，不逆向私有协议、不提供 HTTP API 服务、不对外暴露接口。
+  它是给本地 agent 用的工具，不是 API 服务（`--json` 只是本机 CLI 的结构化输出）。
 - **会消耗网页版每日额度**：豆包视频生成会明确提示「本次生成将消耗每日免费额度」。
 - **prompt 会发往对应站点**：发送前有确定性闸门兜底，但用户未同意时不要发送私密/内部数据。
 - **产物归平台**：豆包生成的图片/视频带「豆包AI生成」水印（平台行为，无法去除）；
@@ -262,7 +274,8 @@ official-llm-zhazhiji/
 
 ## 许可证
 
-本项目基于 MIT License 开源；三个子仓库各自独立遵循 MIT（以各仓库的许可证章节为准）。
+本项目基于 MIT License 开源，完整条款见 [LICENSE](LICENSE)；
+三个子仓库各自独立遵循 MIT，各自的 [LICENSE](deepseek-brain/LICENSE) 见对应仓库。
 
 ## 社区
 
