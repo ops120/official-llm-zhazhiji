@@ -53,7 +53,8 @@
   **执行权始终在本地 agent 手里**；建议单个任务不超过 12 轮，到顶暂停问用户。
 - **可枚举的失败码**：`ok:false` 时 `reason` 必属枚举集，每个码有对应动作；
   硬规则——绝不把失败伪装成结果，绝不静默降级后不告知，同类失败最多重试 2 次。
-- **状态目录隔离**：回答正文默认不落盘（只记元数据）；cookie（以及 Gemini / 豆包额外保存的
+- **状态目录隔离**：回答正文默认不落盘（只记元数据；例外是 `--debug` 或失败时的 `debug/` 快照，
+  会含未脱敏正文，排障后请删除）；cookie（以及 Gemini / 豆包额外保存的
   `storage-state.json`）**永不**导出到项目目录、**永不**进日志、**永不**进 prompt；
   目录权限 `0700`、文件 `0600`（仅 Unix/macOS 生效，Windows 依赖用户目录 ACL）。
 - **`doctor` 体检**：每个任务前跑一次；`doctor --deep` 做真机探测，站点改版时用于定位选择器漂移。
@@ -125,7 +126,8 @@ node ~/.agents/skills/deepseek-brain/scripts/dsb/cli.mjs setup    # 换 dbb / gm
 > **关于命令写法（重要）**：下文 `dsb` / `dbb` / `gmb` 都是**文档简写**，并非安装好的命令。
 > 以 `dsb` 为例，它等价于 `node "<安装目录>/deepseek-brain/scripts/dsb/cli.mjs" <命令>`。
 >
-> **推荐：先设一个变量，再配别名**（三种宿主任选对应的一行；想长期生效就写进 `~/.bashrc` / `~/.zshrc`）：
+> **推荐：先设一个变量，再配别名**（三种宿主任选对应的一行；想长期生效就写进 `~/.bashrc` / `~/.zshrc`。
+> 只装了其中一个 brain 时，只配对应那一行即可，其余别名会指向不存在的路径）：
 > ```bash
 > # Claude Code 安装：SKILLS_DIR="$HOME/.claude/skills"
 > # Codex 安装：      SKILLS_DIR="$HOME/.codex/skills"
@@ -153,9 +155,15 @@ node ~/.agents/skills/deepseek-brain/scripts/dsb/cli.mjs setup    # 换 dbb / gm
 
 > ⚠️ `--debug` 与失败时保存的 `debug/` 目录**可能包含你的 prompt 与模型回答原文（未脱敏）**，
 > 它们保存在状态目录而非项目目录；排障后建议删除，**不要直接上传到公开 issue**。
-> 状态目录位置：Windows `%LOCALAPPDATA%\<name>-brain\`、
-> macOS `~/Library/Application Support/<name>-brain/`、Linux `$XDG_STATE_HOME/<name>-brain/`
-> （可用 `DSB_STATE_DIR` / `DBB_STATE_DIR` / `GMB_STATE_DIR` 覆盖）。
+> 状态目录位置（`<name>` 为 `deepseek` / `doubao` / `gemini`，括号内是对应的覆盖变量）：
+>
+> | 系统 | 路径 |
+> | --- | --- |
+> | Windows | `%LOCALAPPDATA%\<name>-brain\` |
+> | macOS | `~/Library/Application Support/<name>-brain/` |
+> | Linux | `$XDG_STATE_HOME/<name>-brain/`（未设置时通常为 `~/.local/state/<name>-brain/`） |
+>
+> 覆盖变量：`DSB_STATE_DIR`（deepseek-brain）/ `DBB_STATE_DIR`（doubao-brain）/ `GMB_STATE_DIR`（gemini-brain）。
 
 ### 🐋 deepseek-brain —— 推理与联网搜索
 
