@@ -7,3 +7,6 @@
 [submodule "gemini-brain"]
 	path = gemini-brain
 	url = https://github.com/ops120/gemini-brain.git
+[submodule "grok-brain"]
+	path = grok-brain
+	url = https://github.com/ops120/grok-brain.git
