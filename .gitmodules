@@ -10,3 +10,6 @@
 [submodule "grok-brain"]
 	path = grok-brain
 	url = https://github.com/ops120/grok-brain.git
+[submodule "qwen-brain"]
+	path = qwen-brain
+	url = https://github.com/ops120/qwen-brain.git
