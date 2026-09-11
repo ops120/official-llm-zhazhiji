@@ -283,7 +283,7 @@ async function cmdSetup() {
 
   const res = await withBrowserLock("setup", () => waitLoginFlow({ timeoutMs: Number(flags.timeout ?? 1800000) }));
   if (!res.ok) {
-    if (res.reason === "LOGIN_ABORTED") return emit({ ok: true, loginState: "anonymous", note: "未登录（匿名模式可用）；要解锁视频生成与同步请再跑 cgb login" });
+    if (res.reason === "LOGIN_ABORTED") return emit({ ok: true, loginState: "anonymous", note: "未登录（游客模式可用）；要解锁更多额度与云空间同步请再跑 cgb login" });
     return fail(res.reason, "等待登录超时，请重试。", res);
   }
   return emit({ ok: true, ...res, browser: br.executablePath ?? br.channel, stateDir: dirs().root });
@@ -455,6 +455,11 @@ async function cmdAskInner() {
   const timeoutMs = Number(flags.timeout ?? 300000);
   const captchaWaitMs = Number(flags["captcha-wait"] ?? 180000);
 
+  // 模型只读（智谱清言网页版有模型下拉，但 v1 未接入切换）；在开浏览器之前就拒绝
+  if (flags.model !== undefined) {
+    return fail("INVALID_ARGUMENTS", "chatglm-brain v1 不支持切换模型（页面模型下拉的切换锚点未真机验证）；模型由站点当前选择决定，可用 list-models / doctor --deep 查看。");
+  }
+
   let ctx;
   try {
     ctx = await launchBrowser({ headless: !!flags.headless });
@@ -549,10 +554,6 @@ async function cmdAskInner() {
       await site.startNewChat(page);
     }
 
-    // 模型只读（智谱清言网页版有模型下拉，但 v1 未接入切换；--model 显式拒绝）
-    if (flags.model !== undefined) {
-      return fail("INVALID_ARGUMENTS", "chatglm-brain v1 不支持切换模型（页面模型下拉的切换锚点未真机验证）；模型由站点当前选择决定，可用 doctor --deep 查看。");
-    }
     const modelBefore = await site.readModel(page);
 
     // 附件上传。智谱的 input[type=file] **常驻 DOM（隐藏）**，共 3 个：

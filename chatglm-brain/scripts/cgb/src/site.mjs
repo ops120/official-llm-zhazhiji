@@ -51,9 +51,12 @@ export const STATE_FN = () => {
     !!el && el.getClientRects().length > 0 && el.getAttribute("aria-hidden") !== "true";
   const body = document.body ? document.body.innerText || "" : "";
   const ta = [...document.querySelectorAll("textarea")].filter(vis);
-  const signIn = [...document.querySelectorAll("button,a,div")].some(
-    (e) => /^登录(送积分好礼)?$/.test((e.innerText || "").trim()) && e.getClientRects().length > 0
-  );
+  // ⚠️ 登录按钮是 div.sidebar-user-entry，innerText 为两行拼接
+  //   （「登录⏎登录送积分好礼」，去空白后是「登录登录送积分好礼」）——
+  //   必须去空白后用正则匹配，精确等值会漏、游客会被误判成已登录（实测踩过）
+  const signIn = [...document.querySelectorAll("button,a,div")]
+    .filter((e) => e.getClientRects().length > 0)
+    .some((e) => /^登录(登录)?(送积分好礼)?$/.test((e.innerText || "").replace(/\s+/g, "")));
   return {
     url: location.href,
     title: document.title,
