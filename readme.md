@@ -4,7 +4,7 @@
 
 榨的对象是**官方 Web 端 LLM**——不是 API，是浏览器里那个网页版。
 方式是通过 **harness** 驱动它：接管会话、自动调用、持续压榨，
-把额度、上下文和能力榨到最后一滴——**在站点额度与风控允许的范围内**，能榨多少榨多少。
+把额度、上下文和能力榨到最后一滴——**在站点额度与风控允许的范围内，低频、非批量地使用**。
 
 没有 API key，不做 web2api：只驱动官方网页，用**本地确定性 CLI** 把网页版 LLM
 变成编码 agent 的**外部大脑**——它们出推理与内容，你的 agent 出执行。
@@ -43,6 +43,8 @@
 
 - **确定性脱敏闸门**（发送前，代码强制）：私钥整段拒绝、密钥形状与家目录路径脱敏；
   单次正文 ≤ 50 KB（`--allow-large` 放宽到 200 KB），超限报 `PAYLOAD_TOO_LARGE`。
+  附件（`--attach`）不含在 50 KB 正文限额内，其格式与大小上限由各站点网页端决定，
+  被拒时报 `UPLOAD_REJECTED`。
 - **人工登录一次，之后长期复用**：登录/人机验证只在网站重弹时才打扰你（`LOGIN_REQUIRED` /
   `HUMAN_VERIFICATION_REQUIRED`，一次只给一个动作）；agent 不接触凭证。
   三仓的登录持久化难度不同：DeepSeek 与豆包的 cookie 是持久型，基本一劳永逸；
@@ -83,8 +85,12 @@ git clone https://github.com/ops120/deepseek-brain ~/.codex/skills/deepseek-brai
 git clone https://github.com/ops120/deepseek-brain ~/.agents/skills/deepseek-brain   # 通用 / ZCode
 ```
 
-> Windows 的 cmd / PowerShell 不展开 `~`，请把上述路径换成 `%USERPROFILE%\.claude\skills\...`
-> 这类绝对路径。
+> Windows 用户注意：**cmd** 请把 `~` 换成 `%USERPROFILE%`（如 `%USERPROFILE%\.claude\skills\...`），
+> **PowerShell** 请用 `$env:USERPROFILE`（如 `$env:USERPROFILE\.claude\skills\...`），
+> 建目录用 `mkdir`。此外 `~` 本身在两者中都不会被展开。
+
+> **clone 完还不能直接运行命令**：下文 `dsb` / `dbb` / `gmb` 是文档简写，不是安装出来的可执行文件。
+> 用之前必须先配别名（见下一节），或把示例里的简写替换成完整 `node "..."` 路径。
 
 只看项目结构、做二次开发才需要主仓库（三个 brain 会作为 submodule 一起拉下来）：
 
@@ -102,20 +108,28 @@ git clone --recursive https://github.com/ops120/official-llm-zhazhiji.git
 > 它们等价于 `node "<skill-root>/scripts/<cli>/cli.mjs" <命令>`，
 > 其中 `<skill-root>` 是你 clone 下来的仓库目录。
 >
-> **直接复制下文示例前，先配好别名**（把路径换成你实际的安装位置）：
+> **推荐：先设一个变量，再配别名**（路径按你的实际安装位置改，三种宿主任选对应的一行）：
 > ```bash
-> alias dsb='node "$HOME/.agents/skills/deepseek-brain/scripts/dsb/cli.mjs"'
-> alias dbb='node "$HOME/.agents/skills/doubao-brain/scripts/dbb/cli.mjs"'
-> alias gmb='node "$HOME/.agents/skills/gemini-brain/scripts/gmb/cli.mjs"'
+> # Claude Code 安装：SKILL_ROOT="$HOME/.claude/skills"
+> # Codex 安装：      SKILL_ROOT="$HOME/.codex/skills"
+> # 通用 / ZCode：    SKILL_ROOT="$HOME/.agents/skills"
+> SKILL_ROOT="$HOME/.agents/skills"          # ← 改成你实际用的那个
+> alias dsb='node "$SKILL_ROOT/deepseek-brain/scripts/dsb/cli.mjs"'
+> alias dbb='node "$SKILL_ROOT/doubao-brain/scripts/dbb/cli.mjs"'
+> alias gmb='node "$SKILL_ROOT/gemini-brain/scripts/gmb/cli.mjs"'
 > ```
-> 不配别名也行，把示例里的 `dsb` 整体替换成上面那条 `node "..."` 全路径即可。
+> 不配别名也行：把示例里的 `dsb` 整体替换成 `node "$SKILL_ROOT/deepseek-brain/scripts/dsb/cli.mjs"`。
 
 ## 快速上手
 
-三个 CLI 的命令面同构（`doctor` / `ask` / `thread` / `session` / `logs` …），
+三个 CLI 的公共命令面同构（`setup` / `login` / `logout` / `doctor` / `ask` / `thread` / `session` / `logs` / `update-check`）；
+`list-models` 仅 doubao 与 gemini 有（DeepSeek 网页版没有模型选择器，故无此命令）。
 `--json`（机器可读）与 `--debug`（存页面 HTML 排障）为全局选项；
 `--keep-open`（保留浏览器窗口）只对会打开浏览器的命令有意义。
 以下示例使用别名简写，未配别名时请自行展开为全路径。
+
+> ⚠️ `--debug` 与失败时保存的 `debug/` 目录**可能包含你的 prompt 与模型回答原文（未脱敏）**，
+> 它们保存在状态目录而非项目目录；排障后建议删除，**不要直接上传到公开 issue**。
 
 ### 🐋 deepseek-brain —— 推理与联网搜索
 
@@ -134,7 +148,7 @@ dbb doctor --json
 dbb ask --prompt "一只布偶猫趴在窗台上晒太阳，油画风格" \
   --capability "图像生成" --thread new --json
 dbb ask --prompt "一只熊猫在竹林里啃竹子，阳光斑驳" \
-  --capability "视频生成" --timeout 900000 --json          # 异步，给足超时
+  --capability "视频生成" --thread new --timeout 900000 --json   # 异步，给足超时
 dbb ask --prompt "分析下这段代码" --model "2.1 Turbo" --json
 ```
 
@@ -148,7 +162,7 @@ dbb ask --prompt "分析下这段代码" --model "2.1 Turbo" --json
 ```bash
 gmb doctor --json
 gmb ask --prompt "画一只橘猫坐在窗台上，水彩画风格" --thread new --json   # files[] 给原图路径
-gmb ask --prompt "用纯 SVG 写一个循环动画：鹈鹕骑自行车" --thread new --json  # 代码走 Canvas
+gmb ask --prompt "用纯 SVG 写一个循环动画：鹈鹕骑自行车" --thread new --json  # 代码进 Canvas 面板
 gmb ask --prompt "分析下这段代码" --model Pro --json
 ```
 
@@ -162,7 +176,7 @@ gmb ask --prompt "分析下这段代码" --model Pro --json
 | 实时信息查证（版本、价格、新闻、文档更新） | deepseek（`--search on`） |
 | 生成图片 / 视频 / 音乐 / 播客，录音转写 | doubao |
 | 高分辨率生图（2816×1536 原图） | gemini |
-| 可运行的代码 / 页面 / 动画（Canvas + 下载源文件） | gemini |
+| 可运行的代码 / 页面 / 动画（代码在 Canvas 面板，可下载源文件） | gemini |
 | 中文长文写作辅助 | doubao（「帮我写作」） |
 | 第三方独立意见、与本地模型交叉验证 | 任意一个都行，换个「大脑」问 |
 
@@ -192,7 +206,7 @@ official-llm-zhazhiji/
 
 - **低频辅助工具**：每次问答会真实打开一个浏览器窗口，用完自动关闭。
   普通问答几秒到几十秒；**生成类任务（生图 / 生视频）会显著更久**，
-  豆包视频实测约 3 分钟、预告可达 10 分钟，此时需给足 `--timeout`。
+  豆包视频实测约 3 分钟、站点提示可达 10 分钟，此时需给足 `--timeout`。
   请按「偶尔咨询」的频率使用，**不做批量、不做并发**（同一时间只跑一个会话）。
 - **不做 web2api**：只在本机驱动官方网页，不逆向私有协议、不做 HTTP 代理、
   不对外暴露接口。它是给本地 agent 用的工具，不是 API 服务。
