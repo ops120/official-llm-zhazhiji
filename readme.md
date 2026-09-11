@@ -9,10 +9,12 @@
 没有 API key，不做 web2api：只驱动官方网页，用**本地确定性 CLI** 把网页版 LLM
 变成编码 agent 的**外部大脑**——它们出推理与内容，你的 agent 出执行。
 
-## 三个大脑
+## 当前三个大脑
 
 机队现有三台榨汁机，各自独立仓库、独立 skill，互不依赖
-（本仓库通过 git submodule 引用它们，三个 brain 的 git 历史完全独立）：
+（本仓库通过 git submodule 引用它们，三个 brain 的 git 历史完全独立）。
+**三个只是当前规模，不是固定上限**：后续会按实际情况增加新大脑、持续更新已有大脑，
+本文档与各章节随之维护：
 
 | | [deepseek-brain](https://github.com/ops120/deepseek-brain) | [doubao-brain](https://github.com/ops120/doubao-brain) | [gemini-brain](https://github.com/ops120/gemini-brain) |
 | --- | --- | --- | --- |
@@ -154,6 +156,35 @@ node "$SKILLS_DIR/deepseek-brain/scripts/dsb/cli.mjs" setup   # 换 dbb / gmb �
 
 ## 快速上手
 
+### 自然语言驱动举例
+
+三个 brain 都是 skill，**装好之后不需要记命令**——直接对 agent 说人话即可。
+agent 会自己走「体检 → 调用 CLI → 按可枚举失败码处理」的流程。
+
+| 你想做什么 | 直接对 agent 说 | 走哪个 brain |
+| --- | --- | --- |
+| 深度推理 / 疑难调试 | 「用 deepseek 深度思考分析一下这个报错」 | deepseek |
+| 查实时信息（版本 / 价格 / 新闻） | 「让 deepseek 联网查一下这个库的最新版本」 | deepseek |
+| 要第三方独立意见 | 「问问 deepseek 这个设计有什么问题」 | deepseek |
+| 生成图片 | 「让豆包画一只猫，水彩风格」 | doubao |
+| 生成视频 | 「用豆包做一段熊猫吃竹子的短视频」 | doubao |
+| 写长文 | 「让豆包帮我写一篇项目介绍」 | doubao |
+| 高清生图 / 要原图 | 「让 gemini 画一只猫，我要原图」 | gemini |
+| 写代码 / 页面 / 动画 | 「让 gemini 写个纯 SVG 循环动画」 | gemini |
+| 分析文件 / PDF / 图片 | 「用 deepseek 分析这份 PDF」「让 gemini 看下这张图」 | 任意 |
+| 出方案 → 执行 → 复核 | 「让 deepseek 出方案，你执行，做完让它复核」 | 任意（协作协议） |
+
+使用要点：
+
+- **点名最稳**：话里带上 deepseek / 豆包 / gemini，agent 就走对应 skill（中文、英文触发词都可以）。
+- **首次要先配置**：三个 brain 各需人工登录一次（见「安装」），之后基本不用管。
+- **追问不用重复背景**：接着聊即可，agent 会复用同一线程。
+- **生成类要等**：生图约半分钟、生视频约 3 分钟起，属正常。
+- **agent 想用自己的搜索代替时**：直接说「用 xxx-brain 的 CLI 做，不要用宿主搜索」——
+  这是各 skill 的硬规则。各 brain 的完整说法见其 README 的「自然语言驱动举例」章节。
+
+### 命令行方式
+
 三个 CLI 的公共命令面同构（`setup` / `login` / `logout` / `doctor` / `ask` / `thread` / `session` / `logs` / `update-check`）；
 `list-models` 仅 doubao 与 gemini 有（DeepSeek 网页版没有模型选择器，故无此命令）。
 `--json`（机器可读）与 `--debug`（存页面 HTML 排障）为全局选项；
@@ -224,33 +255,6 @@ gmb list-models --json                              # 看可用模型档位
 
 > **登录提示**：Google 对自动化浏览器有风控，**建议用小号**；登录时会遇到 reCAPTCHA，需你本人点选。
 
-## 自然语言驱动举例
-
-三个 brain 都是 skill，**装好之后不需要记命令**——直接对 agent 说人话即可。
-agent 会自己走「体检 → 调用 CLI → 按可枚举失败码处理」的流程。
-
-| 你想做什么 | 直接对 agent 说 | 走哪个 brain |
-| --- | --- | --- |
-| 深度推理 / 疑难调试 | 「用 deepseek 深度思考分析一下这个报错」 | deepseek |
-| 查实时信息（版本 / 价格 / 新闻） | 「让 deepseek 联网查一下这个库的最新版本」 | deepseek |
-| 要第三方独立意见 | 「问问 deepseek 这个设计有什么问题」 | deepseek |
-| 生成图片 | 「让豆包画一只猫，水彩风格」 | doubao |
-| 生成视频 | 「用豆包做一段熊猫吃竹子的短视频」 | doubao |
-| 写长文 | 「让豆包帮我写一篇项目介绍」 | doubao |
-| 高清生图 / 要原图 | 「让 gemini 画一只猫，我要原图」 | gemini |
-| 写代码 / 页面 / 动画 | 「让 gemini 写个纯 SVG 循环动画」 | gemini |
-| 分析文件 / PDF / 图片 | 「用 deepseek 分析这份 PDF」「让 gemini 看下这张图」 | 任意 |
-| 出方案 → 执行 → 复核 | 「让 deepseek 出方案，你执行，做完让它复核」 | 任意（协作协议） |
-
-使用要点：
-
-- **点名最稳**：话里带上 deepseek / 豆包 / gemini，agent 就走对应 skill（中文、英文触发词都可以）。
-- **首次要先配置**：三个 brain 各需人工登录一次（见「安装」），之后基本不用管。
-- **追问不用重复背景**：接着聊即可，agent 会复用同一线程。
-- **生成类要等**：生图约半分钟、生视频约 3 分钟起，属正常。
-- **agent 想用自己的搜索代替时**：直接说「用 xxx-brain 的 CLI 做，不要用宿主搜索」——
-  这是各 skill 的硬规则。各 brain 的完整说法见其 README 的「自然语言驱动举例」章节。
-
 ## 怎么选
 
 | 你想要什么 | 用哪个 |
@@ -302,9 +306,10 @@ official-llm-zhazhiji/
   SynthID 等标识）；下载 URL 多为签名链接、会过期，必须当次提取当次下载。
 - **失败就是失败**：`ok:false` 会带可枚举 `reason` 如实上报，不会被伪装成结果。
 
-## 加第四个大脑
+## 按需增加更多大脑
 
-复制一个现有仓库，`sanitize.mjs` / `logger.mjs` 可原样复用，
+三个不是上限；后续要加新大脑时（第四个、第五个……同理），复制一个现有仓库即可。
+`sanitize.mjs` / `logger.mjs` 可原样复用，
 `paths.mjs` / `session.mjs` 以现有仓库为模板按需微调，站点相关的两个文件必须重写：
 
 - `browser.mjs` —— 浏览器探测与**登录持久化**（不同站点的 cookie 策略可能不同，
