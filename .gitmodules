@@ -1,0 +1,9 @@
+[submodule "deepseek-brain"]
+	path = deepseek-brain
+	url = https://github.com/ops120/deepseek-brain.git
+[submodule "doubao-brain"]
+	path = doubao-brain
+	url = https://github.com/ops120/doubao-brain.git
+[submodule "gemini-brain"]
+	path = gemini-brain
+	url = https://github.com/ops120/gemini-brain.git
