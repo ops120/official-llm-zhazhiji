@@ -180,4 +180,4 @@ official-llm-zhazhiji/
 
 ## 社区
 
-本项目在 LINUX DO 社区进行开源推广，感谢社区佬友的交流、反馈与建议。
+本项目在 [LINUX DO](https://linux.do/) 社区进行开源推广，感谢社区佬友的交流、反馈与建议。
