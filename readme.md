@@ -97,7 +97,7 @@ git clone https://github.com/ops120/deepseek-brain ~/.codex/skills/deepseek-brai
 git clone https://github.com/ops120/deepseek-brain ~/.agents/skills/deepseek-brain   # 通用 / ZCode
 ```
 
-> 目标目录已存在时 `git clone` 会失败：若该目录已是 git 仓库，用 `git -C <目录> pull` 更新；
+> Windows 下 `mkdir` 对已存在目录会提示「已存在」，可忽略；`git clone` 到已存在目录则会失败：若该目录已是 git 仓库，用 `git -C <目录> pull` 更新；
 > 否则先删掉旧目录再 clone。
 
 > **Windows 的可复制写法**（cmd 不会展开 `~`，PowerShell 虽通常能展开，仍建议统一用环境变量）：
@@ -111,7 +111,7 @@ git clone https://github.com/ops120/deepseek-brain ~/.agents/skills/deepseek-bra
 > ```
 
 > **clone 完还不能直接运行命令**：下文 `dsb` / `dbb` / `gmb` 是文档简写，不是安装出来的可执行文件。
-> 用之前必须先配别名（见下一节），或把示例里的简写替换成完整 `node "..."` 路径。
+> 用之前必须先配别名（见本节下方的「关于命令写法」），或把示例里的简写替换成完整 `node "..."` 路径。
 
 只看项目结构、做二次开发才需要主仓库（三个 brain 会作为 submodule 一起拉下来）：
 
@@ -132,7 +132,7 @@ node ~/.agents/skills/deepseek-brain/scripts/dsb/cli.mjs setup    # 换 dbb / gm
 首次配置会检查环境、把 `playwright-core` 装到状态目录、打开有头浏览器**请你本人登录**，然后冒烟验证。
 
 > **关于命令写法（重要）**：下文 `dsb` / `dbb` / `gmb` 都是**文档简写**，并非安装好的命令。
-> 以 `dsb` 为例，它等价于 `node "<安装目录>/deepseek-brain/scripts/dsb/cli.mjs" <命令>`。
+> 以 `dsb` 为例，它等价于 `node "<skills 目录>/deepseek-brain/scripts/dsb/cli.mjs" <命令>`。
 >
 > **推荐：先设一个变量，再配别名**（三种宿主任选对应的一行；想长期生效就写进 `~/.bashrc` / `~/.zshrc`。
 > 只装了其中一个 brain 时，只配对应那一行即可，其余别名会指向不存在的路径）：
@@ -168,10 +168,11 @@ dsb logs -n 50                                  # 看最近 50 行脱敏日志
 
 > 以下示例使用别名简写，**未配别名时请自行展开为完整 `node "..."` 路径**。
 
-> ⚠️ `--debug` 产生的页面 HTML，以及失败时保存到 `debug/` 目录的快照，
+> ⚠️ 失败时会**自动**保存页面快照到 `debug/`；`--debug` 则额外保存成功路径的页面 HTML。
+> 这些内容
 > **可能包含你的 prompt 与模型回答原文（未脱敏）**；
 > 它们都保存在状态目录而非项目目录；排障后建议删除，**不要直接上传到公开 issue**。
-> 状态目录位置（`<name>` 为 `deepseek` / `doubao` / `gemini`，括号内是对应的覆盖变量）：
+> 状态目录位置（`<name>` 取 `deepseek` / `doubao` / `gemini`；覆盖变量见表格下方）：
 >
 > | 系统 | 路径 |
 > | --- | --- |
@@ -281,7 +282,8 @@ official-llm-zhazhiji/
 ## 许可证
 
 本项目基于 MIT License 开源，完整条款见 [LICENSE](LICENSE)；
-三个子仓库各自独立遵循 MIT，各自的 [LICENSE](deepseek-brain/LICENSE) 见对应仓库。
+三个子仓库各自独立遵循 MIT：[deepseek-brain/LICENSE](deepseek-brain/LICENSE)、
+[doubao-brain/LICENSE](doubao-brain/LICENSE)、[gemini-brain/LICENSE](gemini-brain/LICENSE)。
 
 ## 社区
 
