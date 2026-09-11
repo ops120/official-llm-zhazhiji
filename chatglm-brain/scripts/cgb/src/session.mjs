@@ -98,11 +98,11 @@ function pidAlive(pid) {
   }
 }
 
-const LOCK_FILE = () => path.join(dirs().root, "qwb.lock");
+const LOCK_FILE = () => path.join(dirs().root, "cgb.lock");
 
 /**
  * 全局会话锁：profile 是 Chrome ProcessSingleton 排他资源，同一时间只允许一个
- * qwb 会话打开浏览器（README 行为约定；并发第二个会拿到 `LOCKED`）。
+ * cgb 会话打开浏览器（README 行为约定；并发第二个会拿到 `LOCKED`）。
  * - `O_EXCL` 独占创建锁文件，内容含 pid —— 持有者进程已死则视为陈旧锁，直接接管；
  * - ⚠️ 必须先拿到锁再调 launchBrowser（其中的孤儿浏览器回收会按 profile 杀进程，
  *   没锁的话会误杀另一个正在运行的会话的浏览器）。
