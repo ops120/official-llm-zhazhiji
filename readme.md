@@ -65,7 +65,7 @@
 
 前置要求（三个 brain 相同）：
 
-- **Node.js ≥ 20**（建议 22 LTS；含 npm —— 首次配置会把 `playwright-core` 装到状态目录，需要能访问 npm registry）
+- **Node.js ≥ 20**（建议用当前 Active LTS；含 npm —— 首次配置会把 `playwright-core` 装到状态目录，需要能访问 npm registry）
 - 系统已装 **Chrome / Edge / Brave / Chromium** 任一（自动探测，**不下载 Chromium**）
 - **网络环境能访问**对应站点，以及一个对应账号（**无需 API key**）。
   注意区分两阶段网络：**安装阶段** Node/npm 要能访问 npm registry（否则装不上 `playwright-core`，
@@ -100,7 +100,8 @@ git clone https://github.com/ops120/deepseek-brain ~/.agents/skills/deepseek-bra
 > Windows 下 `mkdir` 对已存在目录会提示「已存在」，可忽略；`git clone` 到已存在目录则会失败：若该目录已是 git 仓库，用 `git -C <目录> pull` 更新；
 > 否则先删掉旧目录再 clone。
 
-> **Windows 的可复制写法**（cmd 不会展开 `~`，PowerShell 虽通常能展开，仍建议统一用环境变量）：
+> **Windows 的可复制写法**（cmd 不会展开 `~`，PowerShell 虽通常能展开，仍建议统一用环境变量；
+> 下例用 `.agents`，选 Claude Code / Codex 时把 `.agents` 换成 `.claude` / `.codex`）：
 > ```bat
 > REM cmd
 > git clone https://github.com/ops120/deepseek-brain "%USERPROFILE%\.agents\skills\deepseek-brain"
@@ -126,10 +127,11 @@ git clone --recursive https://github.com/ops120/official-llm-zhazhiji.git
 agent 会替你跑 `setup`。也可以自己手动执行首次配置（把路径换成你实际的安装位置）：
 
 ```bash
-node ~/.agents/skills/deepseek-brain/scripts/dsb/cli.mjs setup    # 换 dbb / gmb 与目录名同理
+node "$SKILLS_DIR/deepseek-brain/scripts/dsb/cli.mjs" setup   # 换 dbb / gmb 与目录名同理；$SKILLS_DIR 见下节
 ```
 
 首次配置会检查环境、把 `playwright-core` 装到状态目录、打开有头浏览器**请你本人登录**，然后冒烟验证。
+状态目录被删除或迁移后，需要重新跑一次 `setup`（依赖与登录态都在那里）。
 
 > **关于命令写法（重要）**：下文 `dsb` / `dbb` / `gmb` 都是**文档简写**，并非安装好的命令。
 > 以 `dsb` 为例，它等价于 `node "<skills 目录>/deepseek-brain/scripts/dsb/cli.mjs" <命令>`。
@@ -156,11 +158,12 @@ node ~/.agents/skills/deepseek-brain/scripts/dsb/cli.mjs setup    # 换 dbb / gm
 `list-models` 仅 doubao 与 gemini 有（DeepSeek 网页版没有模型选择器，故无此命令）。
 `--json`（机器可读）与 `--debug`（存页面 HTML 排障）为全局选项；
 `--keep-open`（保留浏览器窗口）只对会打开浏览器的命令有意义。
-各命令的完整参数（`--think` / `--search` / `--attach` / `--capability` / `--model` / `--protocol` 等）
+各命令的完整参数（`--think` / `--search` / `--attach` / `--capability` / `--model`；
+`--protocol` 用于把协作协议信封（PLAN→执行→REVIEW 循环）发给对方）
 以各子仓库 README 的命令面章节为准。常用的几条：
 
 ```bash
-dsb ask --prompt "..." --thread new --json      # 开新线程提问（省略 --thread 则复用当前线程）
+dsb ask --prompt "你的问题" --thread new --json  # 开新线程提问（省略 --thread 则复用当前线程）
 dsb thread status --json                        # 看当前线程
 dsb session get --json                          # 看工作区检查点（协作协议用）
 dsb logs -n 50                                  # 看最近 50 行脱敏日志
@@ -216,6 +219,7 @@ gmb doctor --json
 gmb ask --prompt "画一只橘猫坐在窗台上，水彩画风格" --thread new --json   # files[] 给原图路径
 gmb ask --prompt "用纯 SVG 写一个循环动画：鹈鹕骑自行车" --thread new --json  # 代码进 Canvas 面板
 gmb ask --prompt "分析下这段代码" --model Pro --json
+gmb list-models --json                              # 看可用模型档位
 ```
 
 > **登录提示**：Google 对自动化浏览器有风控，**建议用小号**；登录时会遇到 reCAPTCHA，需你本人点选。
@@ -260,7 +264,8 @@ official-llm-zhazhiji/
 - **低频辅助工具**：每次问答会真实打开一个浏览器窗口，用完自动关闭。
   普通问答几秒到几十秒；**生成类任务（生图 / 生视频）会显著更久**，
   豆包视频实测约 3 分钟、站点提示可达 10 分钟，此时需给足 `--timeout`。
-  请按「偶尔咨询」的频率使用，**不做批量、不做并发**（同一时间只跑一个会话）。
+  请按「偶尔咨询」的频率使用，**不做批量、不做并发**
+  （CLI 用锁文件保证同一时间只跑一个会话，并发调用会被 `LOCKED` 拒绝）。
 - **不做 web2api**：只在本机驱动官方网页，不逆向私有协议、不提供 HTTP API 服务、不对外暴露接口。
   它是给本地 agent 用的工具，不是 API 服务（`--json` 只是本机 CLI 的结构化输出）。
 - **可能消耗网页版每日额度**：各站点与各能力都可能计费或限次；豆包视频生成会明确提示
@@ -282,8 +287,10 @@ official-llm-zhazhiji/
 ## 许可证
 
 本项目基于 MIT License 开源，完整条款见 [LICENSE](LICENSE)；
-三个子仓库各自独立遵循 MIT：[deepseek-brain/LICENSE](deepseek-brain/LICENSE)、
-[doubao-brain/LICENSE](doubao-brain/LICENSE)、[gemini-brain/LICENSE](gemini-brain/LICENSE)。
+三个子仓库各自独立遵循 MIT，许可证文件见：
+[deepseek-brain](https://github.com/ops120/deepseek-brain/blob/main/LICENSE)、
+[doubao-brain](https://github.com/ops120/doubao-brain/blob/main/LICENSE)、
+[gemini-brain](https://github.com/ops120/gemini-brain/blob/main/LICENSE)。
 
 ## 社区
 
