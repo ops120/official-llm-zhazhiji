@@ -1,0 +1,13 @@
+{
+  "name": "msb",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "metaso-brain 机制层：驱动 metaso.cn（秘塔AI搜索）网页版的确定性 CLI",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "playwright-core": "^1.40.0"
+  }
+}
