@@ -9,28 +9,28 @@
 没有 API key，不做 web2api：只驱动官方网页，用**本地确定性 CLI** 把网页版 LLM
 变成编码 agent 的**外部大脑**——它们出推理与内容，你的 agent 出执行。
 
-## 当前五个大脑
+## 当前六个大脑
 
-机队现有五台榨汁机，各自独立仓库、独立 skill，互不依赖
-（本仓库通过 git submodule 引用它们，五个 brain 的 git 历史完全独立）。
-**五个只是当前规模，不是固定上限**：后续会按实际情况增加新大脑、持续更新已有大脑，
+机队现有六台榨汁机，各自独立仓库、独立 skill，互不依赖
+（本仓库通过 git submodule 引用它们，六个 brain 的 git 历史完全独立）。
+**六个只是当前规模，不是固定上限**：后续会按实际情况增加新大脑、持续更新已有大脑，
 本文档与各章节随之维护：
 
-| | [deepseek-brain](https://github.com/ops120/deepseek-brain) | [doubao-brain](https://github.com/ops120/doubao-brain) | [gemini-brain](https://github.com/ops120/gemini-brain) | [grok-brain](https://github.com/ops120/grok-brain) | [qwen-brain](https://github.com/ops120/qwen-brain) |
-| --- | --- | --- | --- | --- | --- |
-| **CLI** | `dsb` | `dbb` | `gmb` | `grb` | `qwb` |
-| **官网** | chat.deepseek.com | doubao.com | gemini.google.com | grok.com | qianwen.com |
-| **独有能力** | 深度思考 + 智能搜索 | 生图 / **生视频** / 音乐 / 播客 / 录音转写 | 生图（2816×1536 原图）+ 代码 Canvas | **X 平台实时信息** + 多档模型 | **思考研究模式** + 中文本土信息 + **匿名可用** |
-| **模型可选** | ✗（只有「深度思考」「智能搜索」两个开关） | ✓（快速 / 2.1 Turbo） | ✓（Flash-Lite / Flash / Pro） | ✓（Fast / Build 可用；Auto / Expert / Heavy 需订阅） | 模式两档（快速 / 思考研究，`--think`） |
-| **登录持久化** | 简单 | 简单（字节系 cookie 是持久型） | **复杂**（session cookie，需三重保险） | 简单（持久型 cookie） | 简单（**登录可选，匿名即可问答**） |
-| **风控实际发生** | 零触发 | 零触发 | 零触发 | 零触发 | 首次配置时 1 次验证码（人工通过）；生图连发 ~6 次/小时触发**静默限流**（无提示，2026-09-12 记录） |
-| **版本** | 3.0.0 | 3.0.0 | 3.0.0 | 3.0.0 | 3.0.2 |
+| | [deepseek-brain](https://github.com/ops120/deepseek-brain) | [doubao-brain](https://github.com/ops120/doubao-brain) | [gemini-brain](https://github.com/ops120/gemini-brain) | [grok-brain](https://github.com/ops120/grok-brain) | [qwen-brain](https://github.com/ops120/qwen-brain) | [chatglm-brain](https://github.com/ops120/chatglm-brain) |
+| --- | --- | --- | --- | --- | --- | --- |
+| **CLI** | `dsb` | `dbb` | `gmb` | `grb` | `qwb` | `cgb` |
+| **官网** | chat.deepseek.com | doubao.com | gemini.google.com | grok.com | qianwen.com | chatglm.cn |
+| **独有能力** | 深度思考 + 智能搜索 | 生图 / **生视频** / 音乐 / 播客 / 录音转写 | 生图（2816×1536 原图）+ 代码 Canvas | **X 平台实时信息** + 多档模型 | **思考研究模式** + 中文本土信息 + **匿名可用** | **GLM 中文推理** + 免费生图 / 清影生视频（网页入口，v1 未自动化） |
+| **模型可选** | ✗（只有「深度思考」「智能搜索」两个开关） | ✓（快速 / 2.1 Turbo） | ✓（Flash-Lite / Flash / Pro） | ✓（Fast / Build 可用；Auto / Expert / Heavy 需订阅） | 模式两档（快速 / 思考研究，`--think`） | ✗（v1 只读；`--model` 显式拒绝，实测 GLM-Flash极致） |
+| **登录持久化** | 简单 | 简单（字节系 cookie 是持久型） | **复杂**（session cookie，需三重保险） | 简单（持久型 cookie） | 简单（**登录可选，匿名即可问答**） | 简单（**登录可选，游客可问答**；cookie 无法区分游客与登录） |
+| **风控实际发生** | 零触发 | 零触发 | 零触发 | 零触发 | 首次配置时 1 次验证码（人工通过）；生图连发 ~6 次/小时触发**静默限流**（无提示，2026-09-12 记录） | **同族最敏感**：对话流连发**第 3 发起 100% 弹验证**（游客 n=8，冷却 >40 分钟）；导航 / 工作流页零触发（2026-09-12 记录） |
+| **版本** | 3.0.0 | 3.0.0 | 3.0.0 | 3.0.0 | 3.0.2 | 3.0.0 |
 
 点上面的仓库名进各自的 README，有完整的能力表、命令面、返回值契约与「真机验证过的坑」。
 
 > 表中能力、模型名与分辨率均为编写时实测值；网页版功能会随站点调整，**实际以页面显示为准**。
 
-> **chatglm-brain（第六个，开发中，暂未入表）风控触发频率实录（2026-09-12）**：
+> **chatglm-brain（第六个）风控触发频率实录（2026-09-12）**：
 > 触发点是**对话流「发送消息」**——导航与工作流页（画图 / 视频）浏览全程零触发。
 > 游客实测 n=8：静置后第 1、2 发通过，**第 3 发起连发全弹**（间隔 4–9 分钟无效）；
 > 进入风控态后真人拖动也难通过（疑似设备指纹被拉黑），停发 40 分钟后仍弹（冷却更久，宁等勿试）。
@@ -38,13 +38,22 @@
 > （游客生图 5 轮/天、生视频登录态 5s=50 积分/条、生图快速模式免费）
 > 见 [chatglm-brain/README.md](chatglm-brain/README.md) 与其 SKILL.md。
 
+> **metaso-brain（第七个，开发中，暂未入表）真机实测实录（2026-09-12）**：
+> 秘塔AI搜索（metaso.cn）——同族里第一个**搜索归纳型**大脑：回答带引用角标与来源面板，
+> 三档强度（简洁 / 深入 / 深度研究）**可编程切换**，游客直接可用（**深度研究除外：弹登录墙**）。
+> 游客简洁/深入档 n=6 发零验证、零限流，单轮 8–15 秒；登录态深度研究单轮实测 **12.4 分钟**
+> （2 万字报告、159 个引用），`creditRest` 100→31 证实深度研究扣点（约 20–30/次口径）。
+> 来源 URL 走会话 API `branched-messages`（citation[] 带 link/title/site/date，去重后返回）；
+> 登录判定以页内 `/api/my-info` 为主（UI 按钮会提前误判）。
+> 详见 [metaso-brain/README.md](metaso-brain/README.md) 与其 SKILL.md。
+
 ## 共享设计（同族机制层）
 
-五个仓库的 `scripts/<cli>/src/` **文件构成相同**（文件名一一对应），把「能复用的」和「站点专属的」切得很干净：
+六个仓库的 `scripts/<cli>/src/` **文件构成相同**（文件名一一对应），把「能复用的」和「站点专属的」切得很干净：
 
 | 文件 | 角色 |
 | --- | --- |
-| `sanitize.mjs` | 发送前的确定性净化闸门（五仓文件一致） |
+| `sanitize.mjs` | 发送前的确定性净化闸门（六仓文件一致） |
 | `logger.mjs` | 脱敏日志（结构一致，仅状态目录名 / 环境变量前缀不同） |
 | `paths.mjs` / `session.mjs` | 状态目录布局、线程与检查点（**内容按站点差异微调**，如状态目录名） |
 | `browser.mjs` | 站点专属：浏览器探测、启动参数、**登录持久化** |
@@ -60,24 +69,25 @@
   闸门是**基于规则**的确定性检查，能挡住常见凭据形态，但不能替代你对外发内容的人工判断。
 - **人工登录一次，之后尽量复用**：登录/人机验证只在网站重弹时才打扰你（`LOGIN_REQUIRED` /
   `HUMAN_VERIFICATION_REQUIRED`，一次只给一个动作）；CLI 不把凭证写入项目目录、日志或 prompt。
-  五仓的登录持久化难度不同：DeepSeek、豆包、Grok 与千问的 cookie 是持久型，基本一劳永逸
-  （**千问更进一步：匿名即可问答，登录是可选项**）；
+  六仓的登录持久化难度不同：DeepSeek、豆包、Grok、千问与智谱清言的 cookie 是持久型，基本一劳永逸
+  （**千问与智谱清言更进一步：匿名 / 游客即可问答，登录是可选项**）；
   **Gemini 依赖 session cookie，站点风控或会话过期时会要求重新登录**。
   登录判定的可靠依据是 cookie（Grok 走 `sso`/`sso-rw`/`x-userid`，千问走
-  `tongyi_sso_ticket`/`b-user-id`；Grok 未登录时「界面也有输入框」——看界面会误判）。
-- **协作协议**（`[DSB]` / `[DBB]` / `[GMB]` / `[GRB]` / `[QWB]`）：让大脑做 PLAN → 你执行 → 它 REVIEW 的循环，
+  `tongyi_sso_ticket`/`b-user-id`；Grok 未登录时「界面也有输入框」——看界面会误判；
+  **智谱清言例外：游客也拿同一组持久 cookie，只能靠界面登录按钮判定**）。
+- **协作协议**（`[DSB]` / `[DBB]` / `[GMB]` / `[GRB]` / `[QWB]` / `[CGB]`）：让大脑做 PLAN → 你执行 → 它 REVIEW 的循环，
   **执行权始终在本地 agent 手里**；建议单个任务不超过 12 轮，到顶暂停问用户。
 - **可枚举的失败码**：`ok:false` 时 `reason` 必属枚举集，每个码有对应动作；
   硬规则——绝不把失败伪装成结果，绝不静默降级后不告知，同类失败最多重试 2 次。
 - **状态目录隔离**：回答正文默认不落盘（只记元数据；例外是 `--debug` 或失败时的 `debug/` 快照，
-  会含未脱敏正文，排障后请删除）；cookie（以及 Gemini / 豆包 / Grok / 千问额外保存的
+  会含未脱敏正文，排障后请删除）；cookie（以及 Gemini / 豆包 / Grok / 千问 / 智谱额外保存的
   `storage-state.json`）**永不**导出到项目目录、**永不**进日志、**永不**进 prompt；
   目录权限 `0700`、文件 `0600`（仅 Unix/macOS 生效，Windows 依赖用户目录 ACL）。
 - **`doctor` 体检**：每个任务前跑一次；`doctor --deep` 做真机探测，站点改版时用于定位选择器漂移。
 
 ## 安装
 
-前置要求（五个 brain 相同）：
+前置要求（六个 brain 相同）：
 
 - **Node.js ≥ 20**（建议用当前 Active LTS；含 npm —— 首次配置会把 `playwright-core` 装到状态目录，需要能访问 npm registry）
 - 系统已装 **Chrome / Edge / Brave / Chromium** 任一（自动探测，**不下载 Chromium**）
@@ -91,11 +101,11 @@
 
 > **先分清两个仓库角色**：本仓库（`official-llm-zhazhiji`）是**聚合主仓库**，
 > 用来浏览与二次开发，**不能直接装进 skills 目录**；
-> 真正要安装的是下面五个子仓库，按你需要的能力任选其一或多选。
+> 真正要安装的是下面六个子仓库，按你需要的能力任选其一或多选。
 
 把子仓库 clone 到宿主的 skills 目录即可（仓库内部无需改任何路径；
 命令行入口还要按下一节配别名或用完整路径）。
-下例以 deepseek-brain 为例，`doubao-brain` / `gemini-brain` / `grok-brain` / `qwen-brain` 换个名字同理。
+下例以 deepseek-brain 为例，`doubao-brain` / `gemini-brain` / `grok-brain` / `qwen-brain` / `chatglm-brain` 换个名字同理。
 若目标目录尚不存在，先建父目录再 clone：
 
 ```bash
@@ -125,29 +135,29 @@ git clone https://github.com/ops120/deepseek-brain ~/.agents/skills/deepseek-bra
 > git clone https://github.com/ops120/deepseek-brain "$env:USERPROFILE\.agents\skills\deepseek-brain"
 > ```
 
-> **clone 完还不能直接运行命令**：下文 `dsb` / `dbb` / `gmb` / `grb` / `qwb` 是文档简写，不是安装出来的可执行文件。
+> **clone 完还不能直接运行命令**：下文 `dsb` / `dbb` / `gmb` / `grb` / `qwb` / `cgb` 是文档简写，不是安装出来的可执行文件。
 > 用之前必须先配别名（见本节下方的「关于命令写法」），或把示例里的简写替换成完整 `node "..."` 路径。
 
-只看项目结构、做二次开发才需要主仓库（五个 brain 会作为 submodule 一起拉下来）：
+只看项目结构、做二次开发才需要主仓库（六个 brain 会作为 submodule 一起拉下来）：
 
 ```bash
 git clone --recursive https://github.com/ops120/official-llm-zhazhiji.git
 ```
 
-> 注意：`--recursive` 拉下来的五个 brain **不会被 agent 自动发现**，
+> 注意：`--recursive` 拉下来的六个 brain **不会被 agent 自动发现**，
 > 要让 agent 用上仍需把它们（或其副本）放进宿主的 skills 目录。
 
 装好后对 agent 说：**「用 deepseek-brain 完成首次配置」**（换 `doubao-brain` / `gemini-brain` / `grok-brain` / `qwen-brain` 同理），
 agent 会替你跑 `setup`。也可以自己手动执行首次配置（把路径换成你实际的安装位置）：
 
 ```bash
-node "$SKILLS_DIR/deepseek-brain/scripts/dsb/cli.mjs" setup   # 换 dbb / gmb / grb / qwb 与目录名同理；$SKILLS_DIR 见下节
+node "$SKILLS_DIR/deepseek-brain/scripts/dsb/cli.mjs" setup   # 换 dbb / gmb / grb / qwb / cgb 与目录名同理；$SKILLS_DIR 见下节
 ```
 
 首次配置会检查环境、把 `playwright-core` 装到状态目录、打开有头浏览器**请你本人登录**，然后冒烟验证。
 状态目录被删除或迁移后，需要重新跑一次 `setup`（依赖与登录态都在那里）。
 
-> **关于命令写法（重要）**：下文 `dsb` / `dbb` / `gmb` / `grb` / `qwb` 都是**文档简写**，并非安装好的命令。
+> **关于命令写法（重要）**：下文 `dsb` / `dbb` / `gmb` / `grb` / `qwb` / `cgb` 都是**文档简写**，并非安装好的命令。
 > 以 `dsb` 为例，它等价于 `node "<skills 目录>/deepseek-brain/scripts/dsb/cli.mjs" <命令>`。
 >
 > **推荐：先设一个变量，再配别名**（三种宿主任选对应的一行；想长期生效就写进 `~/.bashrc` / `~/.zshrc`。
@@ -163,6 +173,7 @@ node "$SKILLS_DIR/deepseek-brain/scripts/dsb/cli.mjs" setup   # 换 dbb / gmb / 
 > alias gmb='node "$SKILLS_DIR/gemini-brain/scripts/gmb/cli.mjs"'
 > alias grb='node "$SKILLS_DIR/grok-brain/scripts/grb/cli.mjs"'
 > alias qwb='node "$SKILLS_DIR/qwen-brain/scripts/qwb/cli.mjs"'
+> alias cgb='node "$SKILLS_DIR/chatglm-brain/scripts/cgb/cli.mjs"'
 > ```
 > 不配别名也行：把示例里的 `dsb` 整体替换成 `node "$SKILLS_DIR/deepseek-brain/scripts/dsb/cli.mjs"`。
 > Windows 用户在 cmd / PowerShell 里没有 `alias`，请直接使用完整 `node "..."` 路径
@@ -172,7 +183,7 @@ node "$SKILLS_DIR/deepseek-brain/scripts/dsb/cli.mjs" setup   # 换 dbb / gmb / 
 
 ### 自然语言驱动举例
 
-五个 brain 都是 skill，**装好之后不需要记命令**——直接对 agent 说人话即可。
+六个 brain 都是 skill，**装好之后不需要记命令**——直接对 agent 说人话即可。
 agent 会自己走「体检 → 调用 CLI → 按可枚举失败码处理」的流程。
 
 | 你想做什么 | 直接对 agent 说 | 走哪个 brain |
@@ -187,14 +198,15 @@ agent 会自己走「体检 → 调用 CLI → 按可枚举失败码处理」的
 | 写代码 / 页面 / 动画 | 「让 gemini 写个纯 SVG 循环动画」 | gemini |
 | 查 X / 实时动态与舆情 | 「让 grok 查一下最近 X 上对 <话题> 的讨论」 | grok |
 | 中文视角 / 本土信息 / 深度检索归纳 | 「让千问深度研究一下 <问题>，给出处」 | qwen |
+| GLM 视角推理 / 第三方独立意见 | 「问问智谱清言这个设计有什么问题」 | chatglm |
 | 多档模型 / 深度检索 | 「让 grok 深入检索一下 <问题>，给出处」 | grok |
 | 分析文件 / PDF / 图片 | 「用 deepseek 分析这份 PDF」「让 gemini 看下这张图」 | 任意 |
 | 出方案 → 执行 → 复核 | 「让 deepseek 出方案，你执行，做完让它复核」 | 任意（协作协议） |
 
 使用要点：
 
-- **点名最稳**：话里带上 deepseek / 豆包 / gemini / grok，agent 就走对应 skill（中文、英文触发词都可以）。
-- **首次要先配置**：五个 brain 各需人工登录一次（千问可选，匿名即可用；见「安装」），之后基本不用管。
+- **点名最稳**：话里带上 deepseek / 豆包 / gemini / grok / 千问 / 清言（glm），agent 就走对应 skill（中文、英文触发词都可以）。
+- **首次要先配置**：六个 brain 各需人工登录一次（千问 / 智谱清言可选，匿名 / 游客即可用；见「安装」），之后基本不用管。
 - **追问不用重复背景**：接着聊即可，agent 会复用同一线程。
 - **生成类要等**：生图约半分钟、生视频约 3 分钟起，属正常。
 - **grok 档位看账号**：免费账号实际可用 `Fast`（默认）与 `Build`；
@@ -204,8 +216,8 @@ agent 会自己走「体检 → 调用 CLI → 按可枚举失败码处理」的
 
 ### 命令行方式
 
-五个 CLI 的公共命令面同构（`setup` / `login` / `logout` / `doctor` / `ask` / `thread` / `session` / `logs` / `update-check`）；
-`list-models` 仅 doubao、gemini、grok 与 qwen 有（DeepSeek 网页版没有模型选择器，故无此命令）。
+六个 CLI 的公共命令面同构（`setup` / `login` / `logout` / `doctor` / `ask` / `thread` / `session` / `logs` / `update-check`）；
+`list-models` 仅 doubao、gemini、grok、qwen 与 chatglm 有（DeepSeek 网页版没有模型选择器，故无此命令；chatglm 的仅只读当前模型，v1 不切换）。
 `--json`（机器可读）与 `--debug`（存页面 HTML 排障）为全局选项；
 `--keep-open`（保留浏览器窗口）只对会打开浏览器的命令有意义。
 各命令的完整参数（`--think` / `--search` / `--attach` / `--capability` / `--model`；
@@ -225,7 +237,7 @@ dsb logs -n 50                                  # 看最近 50 行脱敏日志
 > 这些内容
 > **可能包含你的 prompt 与模型回答原文（未脱敏）**；
 > 它们都保存在状态目录而非项目目录；排障后建议删除，**不要直接上传到公开 issue**。
-> 状态目录位置（`<name>` 取 `deepseek` / `doubao` / `gemini` / `grok` / `qwen`；覆盖变量见表格下方）：
+> 状态目录位置（`<name>` 取 `deepseek` / `doubao` / `gemini` / `grok` / `qwen` / `chatglm`；覆盖变量见表格下方）：
 >
 > | 系统 | 路径 |
 > | --- | --- |
@@ -233,7 +245,7 @@ dsb logs -n 50                                  # 看最近 50 行脱敏日志
 > | macOS | `~/Library/Application Support/<name>-brain/` |
 > | Linux | `$XDG_STATE_HOME/<name>-brain/`（未设置时通常为 `~/.local/state/<name>-brain/`） |
 >
-> 覆盖变量：`DSB_STATE_DIR`（deepseek-brain）/ `DBB_STATE_DIR`（doubao-brain）/ `GMB_STATE_DIR`（gemini-brain）/ `GRB_STATE_DIR`（grok-brain）/ `QWB_STATE_DIR`（qwen-brain）。
+> 覆盖变量：`DSB_STATE_DIR`（deepseek-brain）/ `DBB_STATE_DIR`（doubao-brain）/ `GMB_STATE_DIR`（gemini-brain）/ `GRB_STATE_DIR`（grok-brain）/ `QWB_STATE_DIR`（qwen-brain）/ `CGB_STATE_DIR`（chatglm-brain）。
 
 ### 🐋 deepseek-brain —— 推理与联网搜索
 
@@ -306,6 +318,23 @@ qwb ask --prompt "看下这张图" --attach ./pic.png --json
 > **滑块提示**：阿里风控可能弹滑块验证（新环境几乎必弹），CLI 会等你拖完并自动重发
 > （`--captcha-wait`，默认 180 秒）。
 
+### 🅉 chatglm-brain —— GLM 推理与免费生图
+
+```bash
+cgb doctor --json
+cgb ask --prompt "分析这个报错的原因" --thread new --json      # 游客可用
+cgb ask --prompt "总结这份文档的要点" --attach ./report.pdf --json
+cgb list-models --json                              # 只读当前模型（v1 不切换，--model 显式拒绝）
+```
+
+> **游客即可问答**：`setup` 时关闭浏览器即跳过登录（登录解锁更多额度、云空间同步与生视频）。
+> **风控最敏感的大脑**：对话流连发第 3 发起大概率弹滑动验证（游客 n=8 实测全弹），
+> 触发后真人拖动也难通过——唯一正确动作是停发等冷却（>40 分钟），绝不连续重试；
+> 低频使用（间隔 ≥10 分钟）基本无忧。
+> **生图 / 生视频 v1 未自动化**：走侧栏「更多 → AI画图 / AI生视频」手动操作
+> （游客生图 5 轮/天；登录态快速模式免费；清影生视频 5s=50 积分/条，需登录），
+> 恢复策略与额度实测见其 README 的「风控触发频率」「额度实测」两章。
+
 ## 怎么选
 
 | 你想要什么 | 用哪个 |
@@ -313,7 +342,8 @@ qwb ask --prompt "看下这张图" --attach ./pic.png --json
 | 深度推理、算法/数学、疑难调试思路 | deepseek（`--think on`） |
 | 实时信息查证（版本、价格、新闻、文档更新） | deepseek（`--search on`）或 grok |
 | **X 平台动态 / 热点 / 舆情** | **grok**（直连 X 时间线，这是它的独有优势） |
-| **中文视角 / 本土信息 / 深度检索归纳** | **qwen**（思考研究模式；不想登录任何账号时它是唯一匿名可用的选择） |
+| **中文视角 / 本土信息 / 深度检索归纳** | **qwen**（思考研究模式；不想登录账号时它与 chatglm 都可游客使用） |
+| GLM 系中文推理 / 第三方独立意见 | chatglm（游客可问答；注意对话流风控是同族最敏感的） |
 | 生成图片 / 视频 / 音乐 / 播客，录音转写 | doubao |
 | 高分辨率生图（2816×1536 原图） | gemini |
 | 可运行的代码 / 页面 / 动画（代码在 Canvas 面板，可下载源文件） | gemini |
@@ -339,7 +369,7 @@ official-llm-zhazhiji/
 └── README.md           # 本文件
 ```
 
-五个子目录是 **git submodule**：各自指向独立仓库、各自保留完整 git 历史；
+六个子目录是 **git submodule**：各自指向独立仓库、各自保留完整 git 历史；
 主仓库只记录它们的提交指针。改子模块内容要在对应目录里提交并推送，
 主仓库再 commit 一次新的指针。
 
@@ -372,23 +402,24 @@ official-llm-zhazhiji/
 
 ## 按需增加更多大脑
 
-五个不是上限；后续要加新大脑时（第六个、第七个……同理），复制一个现有仓库即可。
+六个不是上限；后续要加新大脑时（第七个、第八个……同理），复制一个现有仓库即可。
 `sanitize.mjs` / `logger.mjs` 可原样复用，
 `paths.mjs` / `session.mjs` 以现有仓库为模板按需微调，站点相关的两个文件必须重写：
 
 - `browser.mjs` —— 浏览器探测与**登录持久化**（不同站点的 cookie 策略可能不同，
-  参考 gemini-brain 的「三重保险」与 doubao-brain / grok-brain / qwen-brain 的持久型 cookie 结论）
+  参考 gemini-brain 的「三重保险」与 doubao-brain / grok-brain / qwen-brain / chatglm-brain 的持久型 cookie 结论）
 - `site.mjs` —— 选择器、输入注入、完成判定、内容/产物抽取（站点专属，**不能直接跑**）
 
 ## 许可证
 
 本项目基于 MIT License 开源，完整条款见 [LICENSE](LICENSE)；
-五个子仓库各自独立遵循 MIT，许可证文件见：
+六个子仓库各自独立遵循 MIT，许可证文件见：
 [deepseek-brain](https://github.com/ops120/deepseek-brain/blob/main/LICENSE)、
 [doubao-brain](https://github.com/ops120/doubao-brain/blob/main/LICENSE)、
 [gemini-brain](https://github.com/ops120/gemini-brain/blob/main/LICENSE)、
 [grok-brain](https://github.com/ops120/grok-brain/blob/main/LICENSE)、
-[qwen-brain](https://github.com/ops120/qwen-brain/blob/main/LICENSE)。
+[qwen-brain](https://github.com/ops120/qwen-brain/blob/main/LICENSE)、
+[chatglm-brain](https://github.com/ops120/chatglm-brain/blob/main/LICENSE)。
 
 ## 社区
 
