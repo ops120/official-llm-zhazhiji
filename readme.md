@@ -47,6 +47,19 @@
 > 登录判定以页内 `/api/my-info` 为主（UI 按钮会提前误判）。
 > 详见 [metaso-brain/README.md](metaso-brain/README.md) 与其 SKILL.md。
 
+> **kimi-brain（第八个，开发中，暂未入表）真机实测实录（2026-09-12）**：
+> Kimi 官网页版（kimi.com）——同族里第一个**登录必选**的大脑：游客点发送即弹登录墙
+> （微信扫码 / 手机验证码）；也是第一个**登录态在 localStorage 而非 cookie** 的
+> （`access_token` / `refresh_token`，cookie 永远只有统计/指纹类——看 cookie 会永远误判为游客）。
+> composer 是 **Lexical** contenteditable：注入用 `insertText`，清空在 /agent 页必须
+> Ctrl+A+Backspace（`execCommand` 的 delete 删不动），且**草稿跨会话恢复**——
+> CLI 注入前强制清空并验证长度一致，实测拦截过一次「旧草稿 + 新 prompt 拼接发出」的污染。
+> 三档模型对应三条路由：快速 → `/`、K3 → `/agent`、K3 集群 → `/agent-swarm`；
+> 免费账号实测：「快速」端到端 10–18 秒全绿、追问正确复用线程；
+> 「K3 集群」弹会员墙（Moderato+，`UPGRADE_REQUIRED`，不会发送）；
+> 「K3」晚间遇拥堵队列（「和Kimi聊天的人太多了」，`RATE_LIMITED`）。
+> 详见 [kimi-brain/README.md](kimi-brain/README.md) 与其 SKILL.md。
+
 ## 共享设计（同族机制层）
 
 六个仓库的 `scripts/<cli>/src/` **文件构成相同**（文件名一一对应），把「能复用的」和「站点专属的」切得很干净：

@@ -19,3 +19,6 @@
 [submodule "metaso-brain"]
 	path = metaso-brain
 	url = https://github.com/ops120/metaso-brain.git
+[submodule "kimi-brain"]
+	path = kimi-brain
+	url = https://github.com/ops120/kimi-brain.git
