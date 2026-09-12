@@ -334,6 +334,7 @@ official-llm-zhazhiji/
 ├── gemini-brain/       # submodule → github.com/ops120/gemini-brain（Gemini 网页版 → gmb CLI）
 ├── grok-brain/         # submodule → github.com/ops120/grok-brain（Grok 网页版   → grb CLI）
 ├── qwen-brain/         # submodule → github.com/ops120/qwen-brain（千问网页版   → qwb CLI）
+├── chatglm-brain/      # submodule → github.com/ops120/chatglm-brain（智谱清言   → cgb CLI，开发中）
 ├── LICENSE             # MIT
 └── README.md           # 本文件
 ```

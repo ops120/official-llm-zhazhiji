@@ -13,3 +13,6 @@
 [submodule "qwen-brain"]
 	path = qwen-brain
 	url = https://github.com/ops120/qwen-brain.git
+[submodule "chatglm-brain"]
+	path = chatglm-brain
+	url = https://github.com/ops120/chatglm-brain.git
