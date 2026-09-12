@@ -16,3 +16,6 @@
 [submodule "chatglm-brain"]
 	path = chatglm-brain
 	url = https://github.com/ops120/chatglm-brain.git
+[submodule "metaso-brain"]
+	path = metaso-brain
+	url = https://github.com/ops120/metaso-brain.git

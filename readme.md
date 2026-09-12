@@ -365,11 +365,12 @@ official-llm-zhazhiji/
 ├── grok-brain/         # submodule → github.com/ops120/grok-brain（Grok 网页版   → grb CLI）
 ├── qwen-brain/         # submodule → github.com/ops120/qwen-brain（千问网页版   → qwb CLI）
 ├── chatglm-brain/      # submodule → github.com/ops120/chatglm-brain（智谱清言   → cgb CLI，开发中）
+├── metaso-brain/       # submodule → github.com/ops120/metaso-brain（秘塔AI搜索 → msb CLI）
 ├── LICENSE             # MIT
 └── README.md           # 本文件
 ```
 
-六个子目录是 **git submodule**：各自指向独立仓库、各自保留完整 git 历史；
+七个子目录是 **git submodule**：各自指向独立仓库、各自保留完整 git 历史；
 主仓库只记录它们的提交指针。改子模块内容要在对应目录里提交并推送，
 主仓库再 commit 一次新的指针。
 
